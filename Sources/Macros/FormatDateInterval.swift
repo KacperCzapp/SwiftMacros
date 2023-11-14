@@ -13,20 +13,26 @@ public struct FormatDateInterval: ExpressionMacro {
         }
 
         let formatter: DeclSyntax = "let formatter = DateIntervalFormatter()"
-        let formatterStatement = CodeBlockItemSyntax(item: .decl(formatter))
-        var statementList = CodeBlockItemListSyntax(arrayLiteral: formatterStatement)
-        node.argumentList.dropFirst(2).forEach { tupleExprElementSyntax in
-            if let parameter = tupleExprElementSyntax.label?.text,
-               !tupleExprElementSyntax.expression.is(NilLiteralExprSyntax.self) {
-                let stmt: StmtSyntax = "formatter.\(raw: parameter) = \(tupleExprElementSyntax.expression)"
-                let codeblock = CodeBlockItemSyntax(item: .stmt(stmt))
-                statementList = statementList.appending(codeblock)
+        let formatterStatement = CodeBlockItemSyntax(item: .decl(formatter), trailingTrivia: .newline)
+        let statementList = node.argumentList
+            .dropFirst(2)
+            .compactMap { tupleExprElementSyntax in
+                if let parameter = tupleExprElementSyntax.label?.text,
+                   !tupleExprElementSyntax.expression.is(NilLiteralExprSyntax.self) {
+                    let stmt: StmtSyntax = "formatter.\(raw: parameter) = \(tupleExprElementSyntax.expression)"
+                    return CodeBlockItemSyntax(item: .stmt(stmt), trailingTrivia: .newline)
+                }
+                return nil
             }
-        }
         let returnValue: ExprSyntax = "return formatter.string(from: \(fromDate), to: \(toDate))"
-        let returnblock = CodeBlockItemSyntax(item: .expr(returnValue))
-        statementList = statementList.appending(returnblock)
-        let closure = ClosureExprSyntax(statements: statementList)
+        let returnblock = CodeBlockItemSyntax(item: .expr(returnValue), trailingTrivia: .newline)
+
+        let codeblock = CodeBlockItemListSyntax {
+            formatterStatement
+            CodeBlockItemListSyntax(statementList)
+            returnblock
+        }
+        let closure = ClosureExprSyntax(statements: codeblock)
         let function = FunctionCallExprSyntax(callee: closure)
         return ExprSyntax(function)
     }
@@ -34,6 +40,6 @@ public struct FormatDateInterval: ExpressionMacro {
 
 extension FreestandingMacroExpansionSyntax {
     func argument(for label: String) -> ExprSyntax? {
-        argumentList.as(TupleExprElementListSyntax.self)?.filter({ $0.label?.text == label }).first?.expression
+        argumentList.as(LabeledExprListSyntax.self)?.filter({ $0.label?.text == label }).first?.expression
     }
 }

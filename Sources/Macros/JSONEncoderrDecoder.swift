@@ -19,20 +19,27 @@ public struct Encode: ExpressionMacro {
             throw MacroDiagnostics.errorMacroUsage(message: "Must specify the value to encode")
         }
         let encoder: DeclSyntax = "let encoder = JSONEncoder()"
-        let encoderStatement = CodeBlockItemSyntax(item: .decl(encoder))
-        var statementList = CodeBlockItemListSyntax(arrayLiteral: encoderStatement)
-        node.argumentList.filter { $0.label != nil }.forEach { tupleExprElementSyntax in
+        let encoderStatement = CodeBlockItemSyntax(item: .decl(encoder), trailingTrivia: .newline)
+        let mappedArgsList = node.argumentList
+            .filter { $0.label != nil }
+            .compactMap { tupleExprElementSyntax in
             if let parameter = tupleExprElementSyntax.label?.text,
                defaults[parameter] != "\(tupleExprElementSyntax.expression)" {
                 let stmt: StmtSyntax = "encoder.\(raw: parameter) = \(tupleExprElementSyntax.expression)"
-                let codeblock = CodeBlockItemSyntax(item: .stmt(stmt))
-                statementList = statementList.appending(codeblock)
+                return CodeBlockItemSyntax(item: .stmt(stmt), trailingTrivia: .newline)
             }
+            return nil
         }
+
         let returnValue: ExprSyntax = "return try encoder.encode(\(value))"
-        let returnblock = CodeBlockItemSyntax(item: .expr(returnValue))
-        statementList = statementList.appending(returnblock)
-        let closure = ClosureExprSyntax(statements: statementList)
+        let returnblock = CodeBlockItemSyntax(item: .expr(returnValue), trailingTrivia: .newline)
+
+        let resultCodeBlock = CodeBlockItemListSyntax {
+            encoderStatement
+            CodeBlockItemListSyntax(mappedArgsList)
+            returnblock
+        }
+        let closure = ClosureExprSyntax(statements: resultCodeBlock)
         let function = FunctionCallExprSyntax(callee: closure)
         return ExprSyntax(function)
     }
@@ -55,20 +62,28 @@ public struct Decode: ExpressionMacro {
             throw MacroDiagnostics.errorMacroUsage(message: "Must specify the type and the value to decode")
         }
         let decoder: DeclSyntax = "let decoder = JSONDecoder()"
-        let decoderStatement = CodeBlockItemSyntax(item: .decl(decoder))
-        var statementList = CodeBlockItemListSyntax(arrayLiteral: decoderStatement)
-        node.argumentList.filter { $0.label != nil && $0.label?.text != "from" }.forEach { tupleExprElementSyntax in
+        let decoderStatement = CodeBlockItemSyntax(item: .decl(decoder), trailingTrivia: .newline)
+
+        let mappedArgsList = node.argumentList
+            .filter { $0.label != nil && $0.label?.text != "from" }
+            .compactMap { tupleExprElementSyntax in
             if let parameter = tupleExprElementSyntax.label?.text,
                defaults[parameter] != "\(tupleExprElementSyntax.expression)" {
                 let stmt: StmtSyntax = "decoder.\(raw: tupleExprElementSyntax.label?.text ?? "") = \(tupleExprElementSyntax.expression)"
-                let codeblock = CodeBlockItemSyntax(item: .stmt(stmt))
-                statementList = statementList.appending(codeblock)
+                return CodeBlockItemSyntax(item: .stmt(stmt), trailingTrivia: .newline)
             }
+            return nil
         }
+
         let returnValue: ExprSyntax = "return try decoder.decode(\(type), from: \(data))"
-        let returnblock = CodeBlockItemSyntax(item: .expr(returnValue))
-        statementList = statementList.appending(returnblock)
-        let closure = ClosureExprSyntax(statements: statementList)
+        let returnblock = CodeBlockItemSyntax(item: .expr(returnValue), trailingTrivia: .newline)
+
+        let resultCodeBlock = CodeBlockItemListSyntax {
+            decoderStatement
+            CodeBlockItemListSyntax(mappedArgsList)
+            returnblock
+        }
+        let closure = ClosureExprSyntax(statements: resultCodeBlock)
         let function = FunctionCallExprSyntax(callee: closure)
         return ExprSyntax(function)
     }

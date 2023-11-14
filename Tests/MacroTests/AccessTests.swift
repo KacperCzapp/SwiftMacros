@@ -170,7 +170,7 @@ final class AccessTests: XCTestCase {
                 set {
                     if let value = newValue {
                         SwiftKeychain.delete(key: "AccessKey_keychainValue")
-                        try? SwiftKeychain.add(value: value, for: "AccessKey_keychainValue")
+                        _ = try? SwiftKeychain.add(value: value, for: "AccessKey_keychainValue")
                     } else {
                         SwiftKeychain.delete(key: "AccessKey_keychainValue")
                     }

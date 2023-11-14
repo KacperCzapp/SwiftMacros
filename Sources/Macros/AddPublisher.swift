@@ -8,11 +8,11 @@ public struct AddPublisher: PeerMacro {
                                  Declaration: DeclSyntaxProtocol>(of node: AttributeSyntax,
                                                                   providingPeersOf declaration: Declaration,
                                                                   in context: Context) throws -> [DeclSyntax] {
+        let allowedPrivacyLevels = ["private", "fileprivate"]
         guard let variableDecl = declaration.as(VariableDeclSyntax.self),
-              let modifiers = variableDecl.modifiers,
-              modifiers.map({ $0.name.text }).contains("private") else {
-                  throw MacroDiagnostics.errorMacroUsage(message: "Please make the subject private and use the automated generated publisher variable outsite of this type")
-              }
+              allowedPrivacyLevels.contains(variableDecl.modifiers.map({ $0.name.text })) else {
+            throw MacroDiagnostics.errorMacroUsage(message: "Please make the subject private or fileprivate and use the automated generated publisher variable outsite of this type")
+        }
         guard let binding = variableDecl.bindings.first,
               let identifier = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier,
               let genericArgumentClause = binding.genericArgumentClause,
@@ -32,12 +32,29 @@ public struct AddPublisher: PeerMacro {
 
 extension PatternBindingListSyntax.Element {
     var genericArgumentClause: GenericArgumentClauseSyntax? {
-        initializer?.value.as(FunctionCallExprSyntax.self)?.calledExpression.as(SpecializeExprSyntax.self)?.genericArgumentClause
-        ?? typeAnnotation?.type.as(SimpleTypeIdentifierSyntax.self)?.genericArgumentClause
+        initializer?
+            .value
+            .as(FunctionCallExprSyntax.self)?
+            .calledExpression
+            .as(GenericSpecializationExprSyntax.self)?
+            .genericArgumentClause
+        ?? typeAnnotation?
+            .type
+            .as(IdentifierTypeSyntax.self)?
+            .genericArgumentClause
     }
 
     var typeName: String? {
-        initializer?.value.as(FunctionCallExprSyntax.self)?.calledExpression.as(SpecializeExprSyntax.self)?.expression.as(IdentifierExprSyntax.self)?.identifier.text
-        ?? typeAnnotation?.type.as(SimpleTypeIdentifierSyntax.self)?.name.text
+        initializer?
+            .value
+            .as(FunctionCallExprSyntax.self)?
+            .calledExpression.as(GenericSpecializationExprSyntax.self)?
+            .expression.as(DeclReferenceExprSyntax.self)?
+            .baseName.text
+        ?? typeAnnotation?
+            .type
+            .as(IdentifierTypeSyntax.self)?
+            .name
+            .text
     }
 }

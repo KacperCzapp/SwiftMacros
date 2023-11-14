@@ -12,20 +12,25 @@ public struct FormatDate: ExpressionMacro {
         }
 
         let formatter: DeclSyntax = "let formatter = DateFormatter()"
-        let formatterStatement = CodeBlockItemSyntax(item: .decl(formatter))
-        var statementList = CodeBlockItemListSyntax(arrayLiteral: formatterStatement)
-        node.argumentList.filter { $0.label != nil }.forEach { tupleExprElementSyntax in
-            if let parameter = tupleExprElementSyntax.label?.text,
-               !tupleExprElementSyntax.expression.is(NilLiteralExprSyntax.self) {
-                let stmt: StmtSyntax = "formatter.\(raw: parameter) = \(tupleExprElementSyntax.expression)"
-                let codeblock = CodeBlockItemSyntax(item: .stmt(stmt))
-                statementList = statementList.appending(codeblock)
+        let formatterStatement = CodeBlockItemSyntax(item: .decl(formatter), trailingTrivia: .newline)
+        let statementList = node.argumentList
+            .filter { $0.label != nil }
+            .compactMap { tupleExprElementSyntax in
+                if let parameter = tupleExprElementSyntax.label?.text,
+                   !tupleExprElementSyntax.expression.is(NilLiteralExprSyntax.self) {
+                    let stmt: StmtSyntax = "formatter.\(raw: parameter) = \(tupleExprElementSyntax.expression)"
+                    return CodeBlockItemSyntax(item: .stmt(stmt), trailingTrivia: .newline)
+                }
+                return nil
             }
-        }
         let returnValue: ExprSyntax = "return formatter.string(from: \(date.expression))"
-        let returnblock = CodeBlockItemSyntax(item: .expr(returnValue))
-        statementList = statementList.appending(returnblock)
-        let closure = ClosureExprSyntax(statements: statementList)
+        let returnblock = CodeBlockItemSyntax(item: .expr(returnValue), trailingTrivia: .newline)
+        let codeblock = CodeBlockItemListSyntax {
+            formatterStatement
+            CodeBlockItemListSyntax(statementList)
+            returnblock
+        }
+        let closure = ClosureExprSyntax(statements: codeblock)
         let function = FunctionCallExprSyntax(callee: closure)
         return ExprSyntax(function)
     }
