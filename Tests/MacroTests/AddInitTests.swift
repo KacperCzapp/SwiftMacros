@@ -15,6 +15,7 @@ final class AddInitTests: XCTestCase {
             struct A {
                 let a: Int?
                 let b: Int
+                let c: Bool
             }
             """,
             expandedSource:
@@ -23,9 +24,11 @@ final class AddInitTests: XCTestCase {
             struct A {
                 let a: Int?
                 let b: Int
-                init(a: Int? = nil, b: Int) {
+                let c: Bool
+                init(a: Int? = nil, b: Int, c: Bool) {
                     self.a = a
                     self.b = b
+                    self.c = c
                 }
             }
             """,
@@ -73,6 +76,7 @@ final class AddInitTests: XCTestCase {
             public class A {
                 let a: Int?
                 let b: Int
+
                 public init(a: Int? = nil, b: Int) {
                     self.a = a
                     self.b = b

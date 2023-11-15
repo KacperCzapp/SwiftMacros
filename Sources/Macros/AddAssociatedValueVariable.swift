@@ -11,7 +11,7 @@ public struct AddAssociatedValueVariable: MemberMacro {
             .memberBlock.members.compactMap({ $0.decl.as(EnumCaseDeclSyntax.self)?.elements }) else {
             throw MacroDiagnostics.errorMacroUsage(message: "Can only be applied to an Enum type")
         }
-        return try members.flatMap { list-> [DeclSyntax] in
+        return try members.flatMap { list -> [DeclSyntax] in
             try list.compactMap { element -> DeclSyntax? in
                 guard let associatedValue = element.parameterClause else { return nil }
                 let typeValue: String

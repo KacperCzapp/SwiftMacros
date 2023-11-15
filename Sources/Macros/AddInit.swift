@@ -12,13 +12,13 @@ public struct AddInit: MemberMacro {
             throw MacroDiagnostics.errorMacroUsage(message: "Can only be applied to a struct, class or actor")
         }
         let (parameters, body) = initBodyAndParams(for: declaration)
-        let bodyExpr: ExprSyntax = "\(raw: body.joined(separator: "\n"))"
         var parametersLiteral = "init(\(parameters.joined(separator: ", ")))"
         if !declaration.modifiers.isEmpty {
             parametersLiteral = "\(declaration.modifiers)\(parametersLiteral)"
         }
-        let initDecl = try InitializerDeclSyntax(SyntaxNodeString(stringLiteral: parametersLiteral),
-                                                 bodyBuilder: { bodyExpr })
+        let initDecl = try InitializerDeclSyntax.init(SyntaxNodeString(stringLiteral: parametersLiteral)) {
+            CodeBlockItemListSyntax(body)
+        }
         var result = [DeclSyntax(initDecl)]
         if node.argument(for: "withMock")?.as(BooleanLiteralExprSyntax.self)?.literal.tokenKind.keyword == .true {
             let randomValue = node.argument(for: "randomMockValue")?.as(BooleanLiteralExprSyntax.self)?
@@ -28,27 +28,49 @@ public struct AddInit: MemberMacro {
         return result
     }
 
-    private static func initBodyAndParams(for declaration: DeclGroupSyntax) -> (params: [String], body: [String]) {
+    private static func initBodyAndParams(for declaration: DeclGroupSyntax) -> (params: [String], body: [CodeBlockItemSyntax]) {
         var parameters: [String] = []
-        var body: [String] = []
-        declaration.memberBlock.members.forEach { member in
+        var bodyStatements: [CodeBlockItemSyntax] = []
+        let members = declaration.memberBlock.members
+        let mapped = members.compactMap { member in
             if let patternBinding = member.decl.as(VariableDeclSyntax.self)?.bindings
                 .as(PatternBindingListSyntax.self)?.first?.as(PatternBindingSyntax.self),
                let identifier = patternBinding.pattern.as(IdentifierPatternSyntax.self)?.identifier,
                let type =  patternBinding.typeAnnotation?.as(TypeAnnotationSyntax.self)?.type {
-                var parameter = "\(identifier): "
-                if type.is(FunctionTypeSyntax.self) {
-                    parameter += "@escaping "
-                }
-                parameter += "\(type)"
-                if type.is(OptionalTypeSyntax.self) {
-                    parameter += " = nil"
-                }
-                parameters.append(parameter)
-                body.append("self.\(identifier) = \(identifier)")
+                return (identifier, type)
             }
+            return nil
         }
-        return (params: parameters, body: body)
+        mapped.enumerated().forEach { index, arg in
+            let (identifier, type) = arg
+
+            var parameter = "\(identifier): "
+            if type.is(FunctionTypeSyntax.self) {
+                parameter += "@escaping "
+            }
+            parameter += "\(type)"
+            if type.is(OptionalTypeSyntax.self) {
+                parameter += " = nil"
+            }
+            parameters.append(parameter)
+            let isFirst = mapped.indices.first == index
+            let isLast = mapped.indices.last == index
+            let declSyntax = CodeBlockItemSyntax(
+                leadingTrivia: isFirst ? .newline : .spaces(4),
+                item:
+                    InfixOperatorExprSyntax(
+                        leftOperand: MemberAccessExprSyntax(base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
+                                                            declName: DeclReferenceExprSyntax(identifier)!),
+                        operator: AssignmentExprSyntax(),
+                        rightOperand: DeclReferenceExprSyntax(identifier)!
+                    )
+                    .as(CodeBlockItemSyntax.Item.self)!,
+                trailingTrivia: isLast ? nil : .newline
+            )
+            bodyStatements.append(declSyntax)
+        }
+
+        return (params: parameters, body: bodyStatements)
     }
 
     private static func mock(basedOn declaration: DeclGroupSyntax, randomValue: Bool) -> DeclSyntax {
