@@ -53,21 +53,11 @@ public struct AddInit: MemberMacro {
                 parameter += " = nil"
             }
             parameters.append(parameter)
-            let isFirst = mapped.indices.first == index
             let isLast = mapped.indices.last == index
-            let declSyntax = CodeBlockItemSyntax(
-                leadingTrivia: isFirst ? .newline : .spaces(4),
-                item:
-                    InfixOperatorExprSyntax(
-                        leftOperand: MemberAccessExprSyntax(base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
-                                                            declName: DeclReferenceExprSyntax(identifier)!),
-                        operator: AssignmentExprSyntax(),
-                        rightOperand: DeclReferenceExprSyntax(identifier)!
-                    )
-                    .as(CodeBlockItemSyntax.Item.self)!,
-                trailingTrivia: isLast ? nil : .newline
-            )
-            bodyStatements.append(declSyntax)
+            let codeBlock = CodeBlockItemSyntax(leadingTrivia: .spaces(4),
+                                                item: .expr("self.\(identifier) = \(identifier)"),
+                                                trailingTrivia: isLast ? nil : .newline)
+            bodyStatements.append(codeBlock)
         }
 
         return (params: parameters, body: bodyStatements)

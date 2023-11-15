@@ -30,7 +30,9 @@ public struct FormatDateComponents: ExpressionMacro {
         let formatterStatement = CodeBlockItemSyntax(item: .decl(formatter), trailingTrivia: .newline)
         let statementList = argumentList.dropFirst(2).compactMap(codeblock)
         let returnValue: ExprSyntax = "return formatter.string(from: \(fromDate), to: \(toDate))"
-        let returnblock = CodeBlockItemSyntax(item: .expr(returnValue), trailingTrivia: .newline)
+        let returnblock = CodeBlockItemSyntax(leadingTrivia: .spaces(4),
+                                              item: .expr(returnValue),
+                                              trailingTrivia: .newline)
         return CodeBlockItemListSyntax {
             formatterStatement
             CodeBlockItemListSyntax(statementList)
@@ -39,12 +41,14 @@ public struct FormatDateComponents: ExpressionMacro {
     }
 
     private static func parseFromFunction(for argumentList: LabeledExprListSyntax,
-                                                  from fromInterval: ExprSyntax) -> CodeBlockItemListSyntax {
+                                          from fromInterval: ExprSyntax) -> CodeBlockItemListSyntax {
         let formatter: DeclSyntax = "let formatter = DateComponentsFormatter()"
         let formatterStatement = CodeBlockItemSyntax(item: .decl(formatter), trailingTrivia: .newline)
         let statementList = argumentList.dropFirst(1).compactMap(codeblock)
         let returnValue: ExprSyntax = "return formatter.string(from: \(fromInterval))"
-        let returnblock = CodeBlockItemSyntax(item: .expr(returnValue), trailingTrivia: .newline)
+        let returnblock = CodeBlockItemSyntax(leadingTrivia: .spaces(4),
+                                              item: .expr(returnValue),
+                                              trailingTrivia: .newline)
 
         return CodeBlockItemListSyntax {
             formatterStatement

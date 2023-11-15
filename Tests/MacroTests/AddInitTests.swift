@@ -25,6 +25,7 @@ final class AddInitTests: XCTestCase {
                 let a: Int?
                 let b: Int
                 let c: Bool
+
                 init(a: Int? = nil, b: Int, c: Bool) {
                     self.a = a
                     self.b = b
@@ -51,6 +52,7 @@ final class AddInitTests: XCTestCase {
             public struct A {
                 let a: Int?
                 let b: Int
+
                 public init(a: Int? = nil, b: Int) {
                     self.a = a
                     self.b = b
@@ -102,6 +104,7 @@ final class AddInitTests: XCTestCase {
             public class A {
                 let a: Int?
                 let b: (Int) -> Void
+
                 public init(a: Int? = nil, b: @escaping (Int) -> Void) {
                     self.a = a
                     self.b = b
@@ -127,6 +130,7 @@ final class AddInitTests: XCTestCase {
             public class A {
                 let a: Int?
                 let b: ((Int) -> Void)?
+
                 public init(a: Int? = nil, b: ((Int) -> Void)? = nil) {
                     self.a = a
                     self.b = b
@@ -152,6 +156,7 @@ final class AddInitTests: XCTestCase {
             actor A {
                 let a: Int
                 let b: Int?
+
                 init(a: Int, b: Int? = nil) {
                     self.a = a
                     self.b = b
@@ -179,11 +184,13 @@ final class AddInitTests: XCTestCase {
                 let a: Int
                 let b: Int?
                 let c: (Int) -> Int
+
                 init(a: Int, b: Int? = nil, c: @escaping (Int) -> Int) {
                     self.a = a
                     self.b = b
                     self.c = c
                 }
+
                 #if DEBUG
                 static let mock = A(a: 1, b: nil, c: { _ in
                         return 1
@@ -212,11 +219,13 @@ final class AddInitTests: XCTestCase {
                 let a: [Int]
                 let b: Set<Int>
                 let c: [Int: String]
+
                 init(a: [Int], b: Set<Int>, c: [Int: String]) {
                     self.a = a
                     self.b = b
                     self.c = c
                 }
+
                 #if DEBUG
                 static let mock = A(a: [1], b: [1], c: [1: "abcd"])
                 #endif
@@ -244,9 +253,11 @@ final class AddInitTests: XCTestCase {
             }
             struct B {
                 let a: A
+
                 init(a: A) {
                     self.a = a
                 }
+
                 #if DEBUG
                 static let mock = B(a: A.mock)
                 #endif

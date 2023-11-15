@@ -18,6 +18,7 @@ final class AddPublisherTests: XCTestCase {
             """
 
             private let subject = PassthroughSubject<Void, Never>()
+
             var subjectPublisher: AnyPublisher<Void, Never> {
                 subject.eraseToAnyPublisher()
             }
@@ -36,6 +37,7 @@ final class AddPublisherTests: XCTestCase {
             """
 
             private let subject = CurrentValueSubject<Void, Never>(())
+
             var subjectPublisher: AnyPublisher<Void, Never> {
                 subject.eraseToAnyPublisher()
             }
@@ -54,6 +56,7 @@ final class AddPublisherTests: XCTestCase {
             """
 
             private let subject: CurrentValueSubject<Void, Never> = .init(())
+
             var subjectPublisher: AnyPublisher<Void, Never> {
                 subject.eraseToAnyPublisher()
             }
@@ -92,7 +95,7 @@ final class AddPublisherTests: XCTestCase {
             let subject = PassthroughSubject<Void, Never>()
             """,
             diagnostics: [
-                DiagnosticSpec(message: "Please make the subject private and use the automated generated publisher variable outsite of this type", line: 1, column: 1)
+                DiagnosticSpec(message: "Please make the subject private or fileprivate and use the automated generated publisher variable outsite of this type", line: 1, column: 1)
             ],
             macros: testMacros
         )

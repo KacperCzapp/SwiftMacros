@@ -8,11 +8,18 @@ public struct AddPublisher: PeerMacro {
                                  Declaration: DeclSyntaxProtocol>(of node: AttributeSyntax,
                                                                   providingPeersOf declaration: Declaration,
                                                                   in context: Context) throws -> [DeclSyntax] {
-        let allowedPrivacyLevels = ["private", "fileprivate"]
-        guard let variableDecl = declaration.as(VariableDeclSyntax.self),
-              allowedPrivacyLevels.contains(variableDecl.modifiers.map({ $0.name.text })) else {
+        let allowedPrivacyLevels = Set(["private", "fileprivate"])
+
+        guard let variableDecl = declaration.as(VariableDeclSyntax.self) else {
+            throw MacroDiagnostics.errorMacroUsage(message: "Macro can only be applied to a variable declaration.")
+        }
+
+        let modifiers = variableDecl.modifiers.map({ $0.name.text }).asSet
+
+        guard !modifiers.isEmpty, modifiers.isSubset(of: allowedPrivacyLevels) else {
             throw MacroDiagnostics.errorMacroUsage(message: "Please make the subject private or fileprivate and use the automated generated publisher variable outsite of this type")
         }
+
         guard let binding = variableDecl.bindings.first,
               let identifier = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier,
               let genericArgumentClause = binding.genericArgumentClause,
@@ -56,5 +63,11 @@ extension PatternBindingListSyntax.Element {
             .as(IdentifierTypeSyntax.self)?
             .name
             .text
+    }
+}
+
+extension Array where Element: Hashable {
+    var asSet: Set<Element> {
+        Set(self)
     }
 }
